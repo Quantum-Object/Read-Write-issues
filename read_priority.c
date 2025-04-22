@@ -37,6 +37,7 @@ void* reader(void* arg) {
         if (data.reader_count == 1) {
             sem_wait(&data.write_sem);
         }
+
         sem_post(&data.mutex); //  ---------> unlock the mutex, NOTE that this is done before the actual read
 
 
@@ -49,7 +50,6 @@ void* reader(void* arg) {
 
         sem_wait(&data.mutex);
         data.reader_count--;
-
 
         if (data.reader_count == 0) {
             sem_post(&data.write_sem);
