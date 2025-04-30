@@ -78,7 +78,7 @@ void* writer(void* arg) {
         sem_post(&data.mutex);
 
         sem_post(&data.write_sem);
-        sleep(2);
+        sleep(4);
     }
     return NULL;
 }
@@ -99,7 +99,7 @@ int main() {
         pthread_create(&readers[i], NULL, reader, &reader_ids[i]);
     }
     
-    sleep(30);
+    sleep(14);
     
     sem_destroy(&data.mutex);
     sem_destroy(&data.write_sem);
