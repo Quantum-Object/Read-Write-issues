@@ -1,35 +1,23 @@
-## You have a shared memory segment that:
+Milestone 1 – Reader-Writer Synchronization
+This project demonstrates two classic synchronization strategies using C, POSIX threads, and semaphores for handling concurrent access to shared memory by multiple reader and writer threads.
 
-{ 2 writer processes need to modify,
+Objectives
+Implement Reader-Priority synchronization: allows multiple readers simultaneously unless a writer is writing.
 
-2 reader processes need to read from}
+Implement Writer-Priority synchronization: prevents writer starvation by giving writers precedence once they request access.
 
-The challenge is coordinating access so that:
+Features
+Reader and writer threads simulate concurrent access.
 
-1.Writers get exclusive access (no other writers or readers while writing)
+Shared integer value used to demonstrate read/write operations.
 
-2.Multiple readers can read simultaneously (since reading doesn't change data)
+Mutual exclusion and synchronization handled via semaphores and mutexes.
 
+Includes both priority strategies as separate programs.
 
-## Writer-Priority Scenario
-Ensure writers get immediate access when they're ready, preventing writer starvation.
-When a writer wants to write:
+Files
+reader_priority.c: Implements reader-priority synchronization.
 
-1. It gets immediate priority over any waiting readers
+writer_priority.c: Implements writer-priority synchronization.
 
-2. All current readers must finish reading
-
-3. No new readers can start while a writer is waiting or writing
-
-## Reader-Priority Scenario
-Maximize reader throughput when no writers are active.
-
-- Multiple readers can read simultaneously
-
-- When a writer wants to write:
-
-   1. It must wait until all current readers finish
-
-   2. New readers arriving while writer waits can still start reading
-
-Only when no readers are active does the writer get exclusive access
+report.docx: Detailed explanation of the strategies and sample output behavior.
