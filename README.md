@@ -18,3 +18,4 @@ This project demonstrates two classic synchronization strategies using C, POSIX 
 - `report.docx`: Detailed explanation of the strategies and sample output behavior.
 
 
+Note: Although it was approved (by Ahmed Sameh) that enforcing reader-priority is not necessary—since readers should wait if writers are present or waiting—we implemented both reader-priority and writer-priority strategies for completeness and comparison.
