@@ -17,12 +17,4 @@ This project demonstrates two classic synchronization strategies using C, POSIX 
 - `writer_priority.c`: Implements writer-priority synchronization.
 - `report.docx`: Detailed explanation of the strategies and sample output behavior.
 
-## Compilation & Execution
-```bash
-gcc -pthread reader_priority.c -o reader_priority
-./reader_priority
-
-gcc -pthread writer_priority.c -o writer_priority
-./writer_priority
-```
 
