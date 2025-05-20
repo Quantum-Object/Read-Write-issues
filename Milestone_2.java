@@ -1,118 +1,129 @@
 import java.util.*;
 
-class MemoryBlock {
-    int start;
-    int size;
-    boolean isFree;
+class Frame {
+    int frameNumber;
     String processId;
+    String segmentName;
+    int pageNumber;
+    boolean isFree;
 
-    MemoryBlock(int start, int size) {
-        this.start = start;
-        this.size = size;
+    Frame(int frameNumber) {
+        this.frameNumber = frameNumber;
         this.isFree = true;
         this.processId = "";
+        this.segmentName = "";
+        this.pageNumber = -1;
     }
 
     @Override
     public String toString() {
-        return isFree ? "Free Block [start=" + start + ", size=" + size + "]" :
-                "Used Block [Process=" + processId + ", start=" + start + ", size=" + size + "]";
+        return isFree ? "Free Frame [" + frameNumber + "]" :
+                "Used Frame [Process=" + processId + ", Segment=" + segmentName + ", Page=" + pageNumber + ", Frame=" + frameNumber + "]";
     }
 }
 
-class ProcessSegment {
+class Segment {
     String name;
     int size;
 
-    ProcessSegment(String name, int size) {
+    Segment(String name, int size) {
         this.name = name;
         this.size = size;
     }
 }
 
-class SegmentedMemoryManager {
-    private List<MemoryBlock> memory;
+class PagingSegmentationManager {
+    private List<Frame> frames;
+    private int frameSize;
 
-    SegmentedMemoryManager(int totalSize) {
-        memory = new ArrayList<>();
-        memory.add(new MemoryBlock(0, totalSize));
+    PagingSegmentationManager(int totalMemorySize, int frameSize) {
+        this.frameSize = frameSize;
+        int frameCount = totalMemorySize / frameSize;
+        frames = new ArrayList<>();
+        for (int i = 0; i < frameCount; i++) {
+            frames.add(new Frame(i));
+        }
     }
 
-    public boolean allocate(String processId, List<ProcessSegment> segments) {
-        for (ProcessSegment segment : segments) {
-            boolean allocated = false;
-            for (int i = 0; i < memory.size(); i++) {
-                MemoryBlock block = memory.get(i);
-                if (block.isFree && block.size >= segment.size) {
-                    MemoryBlock allocatedBlock = new MemoryBlock(block.start, segment.size);
-                    allocatedBlock.isFree = false;
-                    allocatedBlock.processId = processId + ":" + segment.name;
-                    memory.set(i, allocatedBlock);
+    public boolean allocate(String processId, List<Segment> segments) {
+        for (Segment segment : segments) {
+            int pagesNeeded = (int) Math.ceil((double) segment.size / frameSize);
+            List<Frame> availableFrames = new ArrayList<>();
 
-                    if (block.size > segment.size) {
-                        memory.add(i + 1, new MemoryBlock(block.start + segment.size, block.size - segment.size));
-                    }
-
-                    allocated = true;
-                    break;
+            for (Frame frame : frames) {
+                if (frame.isFree) {
+                    availableFrames.add(frame);
+                    if (availableFrames.size() == pagesNeeded) break;
                 }
             }
-            if (!allocated) {
+
+            if (availableFrames.size() < pagesNeeded) {
                 System.out.println("Not enough memory for segment: " + segment.name);
                 return false;
+            }
+
+            for (int i = 0; i < pagesNeeded; i++) {
+                Frame frame = availableFrames.get(i);
+                frame.isFree = false;
+                frame.processId = processId;
+                frame.segmentName = segment.name;
+                frame.pageNumber = i;
             }
         }
         return true;
     }
 
     public void deallocate(String processId) {
-        for (MemoryBlock block : memory) {
-            if (!block.isFree && block.processId.startsWith(processId)) {
-                block.isFree = true;
-                block.processId = "";
-            }
-        }
-        mergeFreeBlocks();
-    }
-
-    private void mergeFreeBlocks() {
-        for (int i = 0; i < memory.size() - 1; ) {
-            MemoryBlock current = memory.get(i);
-            MemoryBlock next = memory.get(i + 1);
-            if (current.isFree && next.isFree) {
-                current.size += next.size;
-                memory.remove(i + 1);
-            } else {
-                i++;
+        for (Frame frame : frames) {
+            if (!frame.isFree && frame.processId.equals(processId)) {
+                frame.isFree = true;
+                frame.processId = "";
+                frame.segmentName = "";
+                frame.pageNumber = -1;
             }
         }
     }
 
     public void displayMemory() {
-        for (MemoryBlock block : memory) {
-            System.out.println(block);
+        for (Frame frame : frames) {
+            System.out.println(frame);
         }
     }
 
-    public void showExternalFragmentation() {
-        int total = 0;
-        for (MemoryBlock block : memory) {
-            if (block.isFree) total += block.size;
+    public void showInternalFragmentation() {
+        int totalWasted = 0;
+        Map<String, Integer> processPages = new HashMap<>();
+        for (Frame frame : frames) {
+            if (!frame.isFree) {
+                String key = frame.processId + ":" + frame.segmentName;
+                processPages.put(key, processPages.getOrDefault(key, 0) + 1);
+            }
         }
-        System.out.println("Total External Fragmentation: " + total);
+
+        for (String key : processPages.keySet()) {
+            // Simulate average of half a page unused in each segment's last page
+            totalWasted += frameSize / 2;
+        }
+
+        System.out.println("Estimated Internal Fragmentation: " + totalWasted + " units");
     }
 }
 
 public class SimulatorMain {
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
-        SegmentedMemoryManager memoryManager = new SegmentedMemoryManager(1000); // 1000 units of memory
+
+        System.out.print("Enter total memory size: ");
+        int totalMemory = scanner.nextInt();
+        System.out.print("Enter frame size: ");
+        int frameSize = scanner.nextInt();
+        PagingSegmentationManager manager = new PagingSegmentationManager(totalMemory, frameSize);
 
         while (true) {
-            System.out.println("\n1. Allocate process (Segmentation)");
+            System.out.println("\n1. Allocate process (Segmentation + Paging)");
             System.out.println("2. Deallocate process");
             System.out.println("3. Display memory");
-            System.out.println("4. Show external fragmentation");
+            System.out.println("4. Show internal fragmentation");
             System.out.println("5. Exit");
             System.out.print("Choose an option: ");
             int choice = scanner.nextInt();
@@ -121,24 +132,24 @@ public class SimulatorMain {
                 case 1:
                     System.out.print("Enter Process ID: ");
                     String pid = scanner.next();
-                    List<ProcessSegment> segments = new ArrayList<>();
+                    List<Segment> segments = new ArrayList<>();
                     System.out.print("Enter Code Segment Size: ");
-                    segments.add(new ProcessSegment("Code", scanner.nextInt()));
+                    segments.add(new Segment("Code", scanner.nextInt()));
                     System.out.print("Enter Data Segment Size: ");
-                    segments.add(new ProcessSegment("Data", scanner.nextInt()));
+                    segments.add(new Segment("Data", scanner.nextInt()));
                     System.out.print("Enter Stack Segment Size: ");
-                    segments.add(new ProcessSegment("Stack", scanner.nextInt()));
-                    memoryManager.allocate(pid, segments);
+                    segments.add(new Segment("Stack", scanner.nextInt()));
+                    manager.allocate(pid, segments);
                     break;
                 case 2:
                     System.out.print("Enter Process ID to deallocate: ");
-                    memoryManager.deallocate(scanner.next());
+                    manager.deallocate(scanner.next());
                     break;
                 case 3:
-                    memoryManager.displayMemory();
+                    manager.displayMemory();
                     break;
                 case 4:
-                    memoryManager.showExternalFragmentation();
+                    manager.showInternalFragmentation();
                     break;
                 case 5:
                     return;
